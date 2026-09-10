@@ -7,6 +7,7 @@ import './styles.css'
 const bridgeBase = import.meta.env.VITE_API_BASE ?? (window.location.port === '5173' ? 'http://127.0.0.1:8787' : '')
 const apiUrl = path => `${bridgeBase}${path}`
 const localDownloadUrl = 'https://github.com/ThiruThanikaiarasu/idea-evaluator/archive/refs/heads/main.zip'
+const hostedBuild = import.meta.env.VITE_DEPLOYMENT_TARGET === 'vercel'
 
 const agents = [
   { id: 'cto', initials: 'CT', name: 'Skeptical CTO', role: 'Feasibility & scale', behavior: 'Assumes data, integrations, and operations break until proven otherwise.', thinking: ['checking scale assumptions', 'pricing the infra bill', 'probing the data model', 'finding the operational trap'] },
@@ -92,7 +93,7 @@ function App() {
   const [showForm, setShowForm] = useState(false)
   const [storyIdea, setStoryIdea] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
-  const [executionMode, setExecutionMode] = useState('codex-cli')
+  const [executionMode, setExecutionMode] = useState(hostedBuild ? 'openai-api' : 'codex-cli')
   const [model, setModel] = useState('Codex default')
   const [apiKey, setApiKey] = useState('')
   const [connectionState, setConnectionState] = useState('idle')
@@ -147,7 +148,8 @@ function App() {
   }, [])
 
   const isLocalCli = executionMode === 'codex-cli' || executionMode === 'claude-cli' || executionMode === 'antigravity-cli'
-  const selectedExecution = isLocalCli ? executionOptions.find(option => option.id === 'local-cli') : executionOptions.find(option => option.id === executionMode)
+  const availableExecutionOptions = hostedBuild ? executionOptions.filter(option => option.kind === 'API') : executionOptions
+  const selectedExecution = isLocalCli ? executionOptions.find(option => option.id === 'local-cli') : availableExecutionOptions.find(option => option.id === executionMode)
   const needsKey = selectedExecution?.kind === 'API'
   const reviews = evaluation?.reviews || []
   const panelReady = runState === 'done' && reviews.length === agents.length
@@ -453,10 +455,10 @@ function App() {
           <button type="button" className="close" onClick={() => setShowSettings(false)} aria-label="Close">×</button>
           <p className="eyebrow">Run settings</p>
           <h2>Choose a runtime.</h2>
-          <p className="settings-intro">CLI modes use this machine. API keys are held only in this tab for the current request and are never saved to the evaluation or database.</p>
-          <div className="execution-options">{executionOptions.map(option => <button type="button" key={option.id} className={`execution-option ${selectedExecution?.id === option.id ? 'selected' : ''}`} onClick={() => selectExecution(option)} aria-pressed={selectedExecution?.id === option.id}><span className="execution-radio" /><span><b>{option.label}</b><small>{option.detail}</small></span><em>{option.kind}</em></button>)}</div>
+          <p className="settings-intro">{hostedBuild ? 'This hosted version uses API providers. API keys are held only in this tab for the current request and are never saved to the evaluation or database.' : 'CLI modes use this machine. API keys are held only in this tab for the current request and are never saved to the evaluation or database.'}</p>
+          <div className="execution-options">{availableExecutionOptions.map(option => <button type="button" key={option.id} className={`execution-option ${selectedExecution?.id === option.id ? 'selected' : ''}`} onClick={() => selectExecution(option)} aria-pressed={selectedExecution?.id === option.id}><span className="execution-radio" /><span><b>{option.label}</b><small>{option.detail}</small></span><em>{option.kind}</em></button>)}</div>
           <div className="local-download" ref={runtimeConfigRef}>
-            <div><p className="eyebrow">Want to run it locally?</p><p>Download the source, Docker setup, and <code>INSTRUCTIONS.md</code>. No saved ideas or keys are included.</p></div>
+            <div><p className="eyebrow">{hostedBuild ? 'Need a local CLI?' : 'Want to run it locally?'}</p><p>{hostedBuild ? <>Codex, Claude, and Antigravity CLI run only on your own machine. Download the local evaluator and follow <code>INSTRUCTIONS.md</code>.</> : <>Download the source, Docker setup, and <code>INSTRUCTIONS.md</code>. No saved ideas or keys are included.</>}</p></div>
             <a className="secondary-button" href={localDownloadUrl}>Download local evaluator ↓</a>
           </div>
           <div className="runtime-config">

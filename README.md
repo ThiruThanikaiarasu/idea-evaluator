@@ -68,3 +68,9 @@ On a real session day, collect consent before projecting an idea. Do not present
 The interactive evaluator can be deployed as one container. See the Docker section in
 [`bridge/README.md`](bridge/README.md) for the build/run commands, persistent volumes, and the
 security model for visitor-supplied OpenAI, Claude, or Groq API keys.
+
+## Vercel hosting
+
+Deploy the React UI to Vercel and keep the persistent Python bridge on a Docker-capable host. The
+required environment variables and security checklist are in [VERCEL.md](VERCEL.md). The hosted UI
+uses API-provider modes; users download the evaluator to use Codex, Claude, or Antigravity locally.
