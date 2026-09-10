@@ -19,8 +19,7 @@ const executionOptions = [
   { id: 'openai-api', label: 'OpenAI API', detail: 'Your key is used only for this run.', kind: 'API' },
   { id: 'anthropic-api', label: 'Claude API', detail: 'Your key is used only for this run.', kind: 'API' },
   { id: 'groq-api', label: 'Groq API', detail: 'Your key is used only for this run.', kind: 'API' },
-  { id: 'codex-cli', label: 'Local Codex CLI', detail: 'Uses the local authenticated Codex CLI.', kind: 'CLI' },
-  { id: 'claude-cli', label: 'Local Claude CLI', detail: 'Uses the local authenticated Claude CLI.', kind: 'CLI' }
+  { id: 'local-cli', label: 'Local CLI', detail: 'Use Codex or Claude already authenticated on this machine.', kind: 'CLI' }
 ]
 
 const scoreLabels = {
@@ -84,6 +83,7 @@ function App() {
   const [workabilityThreshold, setWorkabilityThreshold] = useState(6)
   const [humanReflections, setHumanReflections] = useState({})
   const reflectionTimers = useRef({})
+  const runtimeConfigRef = useRef(null)
   const [approval, setApproval] = useState(null)
   const [artifactUrl, setArtifactUrl] = useState('')
   const [artifactTitle, setArtifactTitle] = useState('')
@@ -118,6 +118,9 @@ function App() {
   const canVisitRef = useRef(canVisit)
   canVisitRef.current = canVisit
   const poppingRef = useRef(false)
+  // Each roast/resume starts a new "journey"; browser-back never replays pages
+  // from an earlier iteration with the current iteration's data.
+  const journeyRef = useRef(0)
 
   useEffect(() => { window.scrollTo(0, 0) }, [page])
 
@@ -125,15 +128,16 @@ function App() {
     // Mirror in-app pages into browser history so back/forward buttons work.
     if (poppingRef.current) { poppingRef.current = false; return }
     if (window.history.state?.page === page) return
-    if (window.history.state == null) window.history.replaceState({ page }, '')
-    else window.history.pushState({ page }, '')
+    if (window.history.state == null) window.history.replaceState({ page, journey: journeyRef.current }, '')
+    else window.history.pushState({ page, journey: journeyRef.current }, '')
   }, [page])
 
   useEffect(() => {
     const onPop = event => {
       const target = event.state?.page
       if (!target) return
-      const destination = canVisitRef.current(target) ? target : 'ideas'
+      const sameJourney = (event.state.journey ?? 0) === journeyRef.current
+      const destination = sameJourney && canVisitRef.current(target) ? target : 'ideas'
       if (destination === pageRef.current) return
       poppingRef.current = true
       setPage(destination)
@@ -142,7 +146,8 @@ function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  const selectedExecution = executionOptions.find(option => option.id === executionMode)
+  const isLocalCli = executionMode === 'codex-cli' || executionMode === 'claude-cli'
+  const selectedExecution = isLocalCli ? executionOptions.find(option => option.id === 'local-cli') : executionOptions.find(option => option.id === executionMode)
   const needsKey = selectedExecution?.kind === 'API'
   const reviews = evaluation?.reviews || []
   const panelReady = runState === 'done' && reviews.length === agents.length
@@ -190,6 +195,7 @@ function App() {
   }
 
   async function roast(idea, { preserveMentor = false } = {}) {
+    journeyRef.current += 1
     setSelectedIdea(idea)
     setSelectedAgent(null)
     setEvaluation(null)
@@ -260,6 +266,7 @@ function App() {
   }
 
   async function resumeIdea(idea) {
+    journeyRef.current += 1
     const response = await fetch(apiUrl(`/api/ideas/${idea.id}/state`))
     if (!response.ok) return
     const state = await response.json()
@@ -357,9 +364,18 @@ function App() {
   }
 
   function selectExecution(option) {
-    setExecutionMode(option.id)
+    const nextMode = option.id === 'local-cli' ? (isLocalCli ? executionMode : 'codex-cli') : option.id
+    setExecutionMode(nextMode)
     setConnectionState('idle')
-    setModel(option.id === 'groq-api' ? 'llama-3.3-70b-versatile' : option.id === 'openai-api' ? 'gpt-5' : option.id === 'anthropic-api' ? 'claude-sonnet-4-6' : option.id === 'codex-cli' ? 'Codex default' : 'Claude default')
+    setModel(nextMode === 'groq-api' ? 'llama-3.3-70b-versatile' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : 'Claude default')
+    requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+  }
+
+  function selectLocalCli(mode) {
+    setExecutionMode(mode)
+    setModel(mode === 'codex-cli' ? 'Codex default' : 'Claude default')
+    setConnectionState('idle')
+    requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
   async function testConfiguration() {
@@ -427,12 +443,12 @@ function App() {
 
       {page === 'history' && history && <section className="summary-page page-enter">
         <div className="summary-heading"><p className="eyebrow">Saved evaluation timeline</p><h1>{history.idea.title}</h1></div>
-        <div className="history-list">{history.evaluations.slice().reverse().map(item => { const score = item.reviews?.length ? item.reviews.reduce((sum, review) => sum + Number(review.overallScore || 0), 0) / item.reviews.length : 0; return <article className="history-card" key={item.runId}><p className="eyebrow">Iteration {item.iteration} · {item.createdAt.slice(0, 10)}</p><h2>{score.toFixed(1)} / 10 panel confidence</h2><details><summary>Show saved reflections and instruction</summary><p>{Object.values(item.humanReflections || {}).filter(Boolean).join(' · ') || 'No reviewer reflections saved yet.'}</p><p>{item.finalInstruction || 'No final mentor instruction saved yet.'}</p></details><button className="story-button" onClick={() => { setSelectedIdea(history.idea); setEvaluation(item); setWorkabilityThreshold(Number(item.workabilityThreshold || 6)); setPage('panel') }}>Open score panel →</button></article>})}{history.mentorRevisions.map(item => <article className="history-card" key={item.id}><p className="eyebrow">Mentor final idea</p><h2>{item.revision.finalIdea?.title || item.revision.title || 'Saved mentor revision'}</h2><p>{item.revision.finalIdea ? `${Number(item.revision.finalIdea.overallScore).toFixed(1)} / 10 confidence` : item.revision.description}</p></article>)}{history.artifacts.map(item => <article className="history-card" key={item.id}><p className="eyebrow">Saved artifact</p><h2><a href={item.url} target="_blank" rel="noreferrer">{item.title}</a></h2></article>)}</div>
+        <div className="history-list">{history.evaluations.slice().reverse().map(item => { const score = item.reviews?.length ? item.reviews.reduce((sum, review) => sum + Number(review.overallScore || 0), 0) / item.reviews.length : 0; return <article className="history-card" key={item.runId}><p className="eyebrow">Iteration {item.iteration} · {item.createdAt.slice(0, 10)}</p><h2>{score.toFixed(1)} / 10 panel confidence</h2><details><summary>Show saved reflections and instruction</summary><p>{Object.values(item.humanReflections || {}).filter(Boolean).join(' · ') || 'No reviewer reflections saved yet.'}</p><p>{item.finalInstruction || 'No final mentor instruction saved yet.'}</p></details><button className="story-button" onClick={() => { journeyRef.current += 1; setSelectedIdea(history.idea); setEvaluation(item); setWorkabilityThreshold(Number(item.workabilityThreshold || 6)); setPage('panel') }}>Open score panel →</button></article>})}{history.mentorRevisions.map(item => <article className="history-card" key={item.id}><p className="eyebrow">Mentor final idea</p><h2>{item.revision.finalIdea?.title || item.revision.title || 'Saved mentor revision'}</h2><p>{item.revision.finalIdea ? `${Number(item.revision.finalIdea.overallScore).toFixed(1)} / 10 confidence` : item.revision.description}</p></article>)}{history.artifacts.map(item => <article className="history-card" key={item.id}><p className="eyebrow">Saved artifact</p><h2><a href={item.url} target="_blank" rel="noreferrer">{item.title}</a></h2></article>)}</div>
       </section>}
 
       {showForm && <div className="modal-backdrop" role="presentation" onClick={event => { if (event.target === event.currentTarget) setShowForm(false) }}><form className="idea-modal" onSubmit={addIdea}><button type="button" className="close" onClick={() => setShowForm(false)} aria-label="Close">×</button><p className="eyebrow">New idea</p><h2>What should we challenge?</h2><label>Idea title<input autoFocus value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} placeholder="e.g. SkillSwap" /></label><label>Full story<textarea value={draft.description} onChange={event => setDraft({ ...draft, description: event.target.value })} placeholder="Describe who has the problem, their context, and the proposed solution." /></label><button className="primary-button" type="submit">Add to the board <span>→</span></button></form></div>}
       {storyIdea && <div className="modal-backdrop" role="presentation" onClick={event => { if (event.target === event.currentTarget) setStoryIdea(null) }}><article className="story-modal"><button type="button" className="close" onClick={() => setStoryIdea(null)} aria-label="Close">×</button><p className="eyebrow">Idea story</p><h2>{storyIdea.title}</h2><p className="story-body">{storyIdea.description}</p><div className="story-modal-footer"><span>This exact story will be the runtime input.</span><button className="primary-button" onClick={() => { setStoryIdea(null); roast(storyIdea) }}>Roast this story <span>→</span></button></div></article></div>}
-      {showSettings && <div className="modal-backdrop" role="presentation" onClick={event => { if (event.target === event.currentTarget) setShowSettings(false) }}><section className="settings-modal"><button type="button" className="close" onClick={() => setShowSettings(false)} aria-label="Close">×</button><p className="eyebrow">Run settings</p><h2>Choose a runtime.</h2><p className="settings-intro">CLI modes use this machine. API keys are held only in this tab for the current request and are never saved to the evaluation or database.</p><div className="execution-options">{executionOptions.map(option => <button type="button" key={option.id} className={`execution-option ${executionMode === option.id ? 'selected' : ''}`} onClick={() => selectExecution(option)} aria-pressed={executionMode === option.id}><span className="execution-radio" /><span><b>{option.label}</b><small>{option.detail}</small></span><em>{option.kind}</em></button>)}</div><label className="settings-field">Model<input value={model} onChange={event => setModel(event.target.value)} /></label>{needsKey && <label className="settings-field">Temporary API key<input type="password" value={apiKey} onChange={event => setApiKey(event.target.value)} placeholder="Used only for this browser session" autoComplete="off" /></label>}<p className="key-note">{needsKey ? 'The key is forwarded to the bridge for this run only; it is never persisted.' : 'Switch to an API provider to use your own key.'}</p><div className="settings-footer"><span className={`connection-state ${connectionState}`}>{connectionState === 'testing' ? 'Checking configuration…' : connectionState === 'ready' ? 'Configuration ready' : connectionState === 'needs-key' ? 'Add an API key to continue' : connectionState === 'runtime-missing' ? 'Selected CLI is not installed' : connectionState === 'bridge-required' ? 'Start the local bridge first' : 'Not connected'}</span><button className="primary-button" onClick={testConfiguration}>Check configuration</button></div><div className="local-download"><div><p className="eyebrow">Run on your own machine</p><p>Download the source, Docker setup, and <code>INSTRUCTIONS.md</code>. No saved ideas or keys are included.</p></div><a className="secondary-button" href={localDownloadUrl}>Download local evaluator ↓</a></div></section></div>}
+      {showSettings && <div className="modal-backdrop" role="presentation" onClick={event => { if (event.target === event.currentTarget) setShowSettings(false) }}><section className="settings-modal"><button type="button" className="close" onClick={() => setShowSettings(false)} aria-label="Close">×</button><p className="eyebrow">Run settings</p><h2>Choose a runtime.</h2><p className="settings-intro">CLI modes use this machine. API keys are held only in this tab for the current request and are never saved to the evaluation or database.</p><div className="execution-options">{executionOptions.map(option => <button type="button" key={option.id} className={`execution-option ${selectedExecution?.id === option.id ? 'selected' : ''}`} onClick={() => selectExecution(option)} aria-pressed={selectedExecution?.id === option.id}><span className="execution-radio" /><span><b>{option.label}</b><small>{option.detail}</small></span><em>{option.kind}</em></button>)}</div><div className="runtime-config" ref={runtimeConfigRef}>{isLocalCli && <div className="local-cli-picker"><span>Choose your local CLI</span><div><button className={executionMode === 'codex-cli' ? 'selected' : ''} onClick={() => selectLocalCli('codex-cli')}>Codex CLI</button><button className={executionMode === 'claude-cli' ? 'selected' : ''} onClick={() => selectLocalCli('claude-cli')}>Claude CLI</button></div></div>}<label className="settings-field">Model<input value={model} onChange={event => setModel(event.target.value)} /></label>{needsKey && <label className="settings-field">Temporary API key<input type="password" value={apiKey} onChange={event => setApiKey(event.target.value)} placeholder="Used only for this browser session" autoComplete="off" /></label>}<p className="key-note">{needsKey ? 'The key is forwarded to the bridge for this run only; it is never persisted.' : `Uses the local authenticated ${executionMode === 'codex-cli' ? 'Codex' : 'Claude'} CLI.`}</p><div className="settings-footer"><span className={`connection-state ${connectionState}`}>{connectionState === 'testing' ? 'Checking configuration…' : connectionState === 'ready' ? 'Configuration ready' : connectionState === 'needs-key' ? 'Add an API key to continue' : connectionState === 'runtime-missing' ? 'Selected CLI is not installed' : connectionState === 'bridge-required' ? 'Start the local bridge first' : 'Not connected'}</span><button className="primary-button" onClick={testConfiguration}>Check configuration</button></div></div><div className="local-download"><div><p className="eyebrow">Run on your own machine</p><p>Download the source, Docker setup, and <code>INSTRUCTIONS.md</code>. No saved ideas or keys are included.</p></div><a className="secondary-button" href={localDownloadUrl}>Download local evaluator ↓</a></div></section></div>}
     </main>
   )
 }
