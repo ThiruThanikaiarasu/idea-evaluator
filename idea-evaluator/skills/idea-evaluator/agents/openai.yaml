@@ -1,0 +1,7 @@
+interface:
+  display_name: "Idea Evaluator"
+  short_description: "Challenge one idea and define its smallest MVP."
+  default_prompt: "Use $idea-evaluator to evaluate this product idea."
+
+policy:
+  allow_implicit_invocation: false

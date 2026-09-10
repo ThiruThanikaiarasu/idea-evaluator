@@ -1,0 +1,21 @@
+{
+  "name": "idea-evaluator",
+  "version": "0.1.0",
+  "description": "Evaluate a product idea with specialised review agents and a human-approved MVP plan.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Idea Evaluator",
+    "shortDescription": "Structured multi-agent product evaluation.",
+    "longDescription": "Runs a product idea through independent feasibility, user, competition, and scope reviews before creating a human-approved MVP plan.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Evaluate a product idea and identify the smallest useful MVP.",
+      "Use Idea Evaluator to challenge this idea from four perspectives."
+    ]
+  }
+}

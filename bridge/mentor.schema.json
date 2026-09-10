@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["finalIdea"],
+  "properties": {
+    "finalIdea": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description", "scores", "overallScore"],
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "scores": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["audience", "problem", "businessValue", "revenue", "competitiveGap", "differentiation", "feasibility", "needToExist", "riskReadiness", "validationReadiness"],
+          "properties": {
+            "audience": { "type": "number", "minimum": 0, "maximum": 10 },
+            "problem": { "type": "number", "minimum": 0, "maximum": 10 },
+            "businessValue": { "type": "number", "minimum": 0, "maximum": 10 },
+            "revenue": { "type": "number", "minimum": 0, "maximum": 10 },
+            "competitiveGap": { "type": "number", "minimum": 0, "maximum": 10 },
+            "differentiation": { "type": "number", "minimum": 0, "maximum": 10 },
+            "feasibility": { "type": "number", "minimum": 0, "maximum": 10 },
+            "needToExist": { "type": "number", "minimum": 0, "maximum": 10 },
+            "riskReadiness": { "type": "number", "minimum": 0, "maximum": 10 },
+            "validationReadiness": { "type": "number", "minimum": 0, "maximum": 10 }
+          }
+        },
+        "overallScore": { "type": "number", "minimum": 0, "maximum": 10 }
+      }
+    }
+  }
+}

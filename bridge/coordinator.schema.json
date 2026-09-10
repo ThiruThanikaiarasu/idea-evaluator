@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision", "thesis", "risks", "evidence", "mvp", "avoid", "metric"],
+  "properties": {
+    "decision": { "type": "string", "enum": ["proceed", "narrow", "pivot", "stop"] },
+    "thesis": { "type": "string" },
+    "risks": { "type": "array", "items": { "type": "string" }, "maxItems": 5 },
+    "evidence": { "type": "array", "items": { "type": "string" }, "maxItems": 5 },
+    "mvp": { "type": "string" },
+    "avoid": { "type": "array", "items": { "type": "string" }, "maxItems": 6 },
+    "metric": { "type": "string" }
+  }
+}
