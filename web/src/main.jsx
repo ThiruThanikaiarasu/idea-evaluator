@@ -146,7 +146,7 @@ function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  const isLocalCli = executionMode === 'codex-cli' || executionMode === 'claude-cli'
+  const isLocalCli = executionMode === 'codex-cli' || executionMode === 'claude-cli' || executionMode === 'antigravity-cli'
   const selectedExecution = isLocalCli ? executionOptions.find(option => option.id === 'local-cli') : executionOptions.find(option => option.id === executionMode)
   const needsKey = selectedExecution?.kind === 'API'
   const reviews = evaluation?.reviews || []
@@ -367,13 +367,13 @@ function App() {
     const nextMode = option.id === 'local-cli' ? (isLocalCli ? executionMode : 'codex-cli') : option.id
     setExecutionMode(nextMode)
     setConnectionState('idle')
-    setModel(nextMode === 'groq-api' ? 'llama-3.3-70b-versatile' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : 'Claude default')
+    setModel(nextMode === 'groq-api' ? 'llama-3.3-70b-versatile' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : nextMode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
     requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
   function selectLocalCli(mode) {
     setExecutionMode(mode)
-    setModel(mode === 'codex-cli' ? 'Codex default' : 'Claude default')
+    setModel(mode === 'codex-cli' ? 'Codex default' : mode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
     setConnectionState('idle')
     requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
@@ -460,10 +460,10 @@ function App() {
             <a className="secondary-button" href={localDownloadUrl}>Download local evaluator ↓</a>
           </div>
           <div className="runtime-config">
-            {isLocalCli && <div className="local-cli-picker"><span>Choose your local CLI</span><div><button className={executionMode === 'codex-cli' ? 'selected' : ''} onClick={() => selectLocalCli('codex-cli')}>Codex CLI</button><button className={executionMode === 'claude-cli' ? 'selected' : ''} onClick={() => selectLocalCli('claude-cli')}>Claude CLI</button></div></div>}
+            {isLocalCli && <div className="local-cli-picker"><span>Choose your local CLI</span><div><button className={executionMode === 'codex-cli' ? 'selected' : ''} onClick={() => selectLocalCli('codex-cli')}>Codex CLI</button><button className={executionMode === 'claude-cli' ? 'selected' : ''} onClick={() => selectLocalCli('claude-cli')}>Claude CLI</button><button className={executionMode === 'antigravity-cli' ? 'selected' : ''} onClick={() => selectLocalCli('antigravity-cli')}>Antigravity CLI</button></div></div>}
             <label className="settings-field">Model<input value={model} onChange={event => setModel(event.target.value)} /></label>
             {needsKey && <label className="settings-field">Temporary API key<input type="password" value={apiKey} onChange={event => setApiKey(event.target.value)} placeholder="Used only for this browser session" autoComplete="off" /></label>}
-            <p className="key-note">{needsKey ? 'The key is forwarded to the bridge for this run only; it is never persisted.' : `Uses the local authenticated ${executionMode === 'codex-cli' ? 'Codex' : 'Claude'} CLI.`}</p>
+            <p className="key-note">{needsKey ? 'The key is forwarded to the bridge for this run only; it is never persisted.' : `Uses the local authenticated ${executionMode === 'codex-cli' ? 'Codex' : executionMode === 'claude-cli' ? 'Claude' : 'Antigravity'} CLI.`}</p>
             <div className="settings-footer"><span className={`connection-state ${connectionState}`}>{connectionState === 'testing' ? 'Checking configuration…' : connectionState === 'ready' ? 'Configuration ready' : connectionState === 'needs-key' ? 'Add an API key to continue' : connectionState === 'runtime-missing' ? 'Selected CLI is not installed' : connectionState === 'bridge-required' ? 'Start the local bridge first' : 'Not connected'}</span><button className="primary-button" onClick={testConfiguration}>Check configuration</button></div>
           </div>
         </section>

@@ -44,6 +44,7 @@ Manual mode can also use a CLI already authenticated on your machine:
 
 - Install and sign in to Codex CLI, then choose **Local Codex CLI** in Run Settings.
 - Or install and sign in to Claude CLI, then choose **Local Claude CLI**.
+- Or install and sign in to [Antigravity CLI](https://www.antigravity.google/docs/cli/getting-started/), then choose **Antigravity CLI**. Its official executable is `agy`.
 
 The bridge must be running before either option works. CLI execution is intentionally local-only; do not expose it publicly.
 

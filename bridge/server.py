@@ -80,9 +80,9 @@ def run_api(provider: str, model: str, schema: Path, prompt: str, api_key: str) 
 def run_cli(provider: str, model: str, schema: Path, prompt: str, api_key: str = "") -> dict[str, Any]:
     if provider in {"openai-api", "groq-api", "anthropic-api"}:
         return run_api(provider, model, schema, prompt, api_key)
-    executable = "codex" if provider == "codex-cli" else "claude"
-    if provider not in {"codex-cli", "claude-cli"}:
-        raise BridgeError("This local bridge currently supports Local Codex CLI or Local Claude CLI.")
+    executable = {"codex-cli": "codex", "claude-cli": "claude", "antigravity-cli": "agy"}.get(provider)
+    if not executable:
+        raise BridgeError("This local bridge supports Local Codex CLI, Local Claude CLI, or Antigravity CLI.")
     if not shutil.which(executable):
         raise BridgeError(f"{executable} is not installed or is not on PATH.")
 
@@ -98,7 +98,7 @@ def run_cli(provider: str, model: str, schema: Path, prompt: str, api_key: str =
             if model and model != "Codex default":
                 command.extend(["--model", model])
             command.append(prompt)
-        else:
+        elif provider == "claude-cli":
             command = [
                 "claude", "--print", "--no-session-persistence",
                 "--output-format", "json", "--json-schema", schema.read_text(),
@@ -106,6 +106,11 @@ def run_cli(provider: str, model: str, schema: Path, prompt: str, api_key: str =
             if model and model != "Claude default":
                 command.extend(["--model", model])
             command.append(prompt)
+        else:
+            # Official Antigravity CLI (`agy`) supports headless schema-constrained JSON.
+            command = ["agy", "-p", prompt, "--output-format", "json", "--json-schema", schema.read_text()]
+            if model and model != "Antigravity default":
+                command.extend(["--model", model])
 
         try:
             result = subprocess.run(
@@ -120,6 +125,11 @@ def run_cli(provider: str, model: str, schema: Path, prompt: str, api_key: str =
         if provider == "codex-cli":
             return json_file(output)
         raw = json.loads(result.stdout)
+        if provider == "antigravity-cli":
+            structured = raw.get("structured_output") if isinstance(raw, dict) else None
+            if isinstance(structured, dict):
+                return structured
+            raise BridgeError("Antigravity did not return structured JSON.")
         text = raw.get("result", raw) if isinstance(raw, dict) else raw
         if isinstance(text, str):
             return json.loads(text)
@@ -311,7 +321,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/api/health":
-            self.send_json(200, {"ok": True, "runtimes": {"codex-cli": bool(shutil.which("codex")), "claude-cli": bool(shutil.which("claude"))}})
+            self.send_json(200, {"ok": True, "runtimes": {"codex-cli": bool(shutil.which("codex")), "claude-cli": bool(shutil.which("claude")), "antigravity-cli": bool(shutil.which("agy"))}})
             return
         if self.path == "/api/ideas":
             self.send_json(200, {"ideas": list_ideas()})
