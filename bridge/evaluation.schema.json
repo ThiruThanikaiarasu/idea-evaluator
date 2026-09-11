@@ -1,10 +1,10 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["agentId", "summary", "scores", "reasons", "overallScore"],
+  "required": ["agentId", "summary", "scores", "reasons", "personaCritiques", "overallScore"],
   "properties": {
     "agentId": { "type": "string" },
-    "summary": { "type": "string", "maxLength": 600 },
+    "summary": { "type": "string", "maxLength": 900 },
     "scores": {
       "type": "object",
       "additionalProperties": false,
@@ -27,16 +27,30 @@
       "additionalProperties": false,
       "required": ["audience", "problem", "businessValue", "revenue", "competitiveGap", "differentiation", "feasibility", "needToExist", "riskReadiness", "validationReadiness"],
       "properties": {
-        "audience": { "type": "string", "maxLength": 160 },
-        "problem": { "type": "string", "maxLength": 160 },
-        "businessValue": { "type": "string", "maxLength": 160 },
-        "revenue": { "type": "string", "maxLength": 160 },
-        "competitiveGap": { "type": "string", "maxLength": 160 },
-        "differentiation": { "type": "string", "maxLength": 160 },
-        "feasibility": { "type": "string", "maxLength": 160 },
-        "needToExist": { "type": "string", "maxLength": 160 },
-        "riskReadiness": { "type": "string", "maxLength": 160 },
-        "validationReadiness": { "type": "string", "maxLength": 160 }
+        "audience": { "type": "string", "maxLength": 300 },
+        "problem": { "type": "string", "maxLength": 300 },
+        "businessValue": { "type": "string", "maxLength": 300 },
+        "revenue": { "type": "string", "maxLength": 300 },
+        "competitiveGap": { "type": "string", "maxLength": 300 },
+        "differentiation": { "type": "string", "maxLength": 300 },
+        "feasibility": { "type": "string", "maxLength": 300 },
+        "needToExist": { "type": "string", "maxLength": 300 },
+        "riskReadiness": { "type": "string", "maxLength": 300 },
+        "validationReadiness": { "type": "string", "maxLength": 300 }
+      }
+    },
+    "personaCritiques": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "detail"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 80 },
+          "detail": { "type": "string", "maxLength": 360 }
+        }
       }
     },
     "overallScore": { "type": "number", "minimum": 0, "maximum": 10 }
