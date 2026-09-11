@@ -97,6 +97,7 @@ function App() {
   const [model, setModel] = useState('Codex default')
   const [apiKey, setApiKey] = useState('')
   const [connectionState, setConnectionState] = useState('idle')
+  const [setupNotice, setSetupNotice] = useState('')
   const [draft, setDraft] = useState({ title: '', description: '' })
   const [thinkTick, setThinkTick] = useState(0)
 
@@ -197,6 +198,7 @@ function App() {
   }
 
   async function roast(idea, { preserveMentor = false } = {}) {
+    if (!ensureRuntimeConfigured()) return
     journeyRef.current += 1
     setSelectedIdea(idea)
     setSelectedAgent(null)
@@ -249,6 +251,7 @@ function App() {
   }
 
   async function retryReviewer(agent) {
+    if (!ensureRuntimeConfigured()) return
     if (!evaluation?.runId) return
     setRunError('')
     setEvaluation(current => ({ ...current, retryingAgentId: agent.id }))
@@ -322,6 +325,7 @@ function App() {
   }
 
   async function runMentor() {
+    if (!ensureRuntimeConfigured()) return
     setMentorState('running')
     try {
       const response = await fetch(apiUrl(`/api/ideas/${selectedIdea.id}/mentor`), {
@@ -369,6 +373,7 @@ function App() {
     const nextMode = option.id === 'local-cli' ? (isLocalCli ? executionMode : 'codex-cli') : option.id
     setExecutionMode(nextMode)
     setConnectionState('idle')
+    setSetupNotice('')
     setModel(nextMode === 'groq-api' ? 'llama-3.3-70b-versatile' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : nextMode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
     requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
@@ -377,22 +382,43 @@ function App() {
     setExecutionMode(mode)
     setModel(mode === 'codex-cli' ? 'Codex default' : mode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
     setConnectionState('idle')
+    setSetupNotice('')
     requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
   async function testConfiguration() {
     if (needsKey && !apiKey.trim()) {
       setConnectionState('needs-key')
+      setSetupNotice(`Add a ${selectedExecution?.label || 'provider'} key before running the agents.`)
       return
     }
     setConnectionState('testing')
     try {
       const response = await fetch(apiUrl('/api/health'))
       const health = await response.json()
-      setConnectionState(needsKey ? 'ready' : health.runtimes?.[executionMode] ? 'ready' : 'runtime-missing')
+      const ready = needsKey || health.runtimes?.[executionMode]
+      setConnectionState(ready ? 'ready' : 'runtime-missing')
+      setSetupNotice(ready ? 'Connection ready. You can now roast an idea.' : `Install and authenticate ${selectedExecution?.label || 'the selected local CLI'} before continuing.`)
     } catch {
       setConnectionState('bridge-required')
+      setSetupNotice('Start the local bridge or connect this hosted app to its API bridge before running agents.')
     }
+  }
+
+  function ensureRuntimeConfigured() {
+    const label = selectedExecution?.label || 'selected runtime'
+    if (needsKey && !apiKey.trim()) {
+      setConnectionState('needs-key')
+      setSetupNotice(`Connect ${label}: paste an API key, then check the configuration before roasting.`)
+      setShowSettings(true)
+      return false
+    }
+    if (connectionState !== 'ready') {
+      setSetupNotice(`Connect ${label}: check the configuration before roasting an idea.`)
+      setShowSettings(true)
+      return false
+    }
+    return true
   }
 
   return (
@@ -456,6 +482,7 @@ function App() {
           <p className="eyebrow">Run settings</p>
           <h2>Choose a runtime.</h2>
           <p className="settings-intro">{hostedBuild ? 'This hosted version uses API providers. API keys are held only in this tab for the current request and are never saved to the evaluation or database.' : 'CLI modes use this machine. API keys are held only in this tab for the current request and are never saved to the evaluation or database.'}</p>
+          {setupNotice && <div className={`setup-notice ${connectionState === 'ready' ? 'ready' : 'warning'}`} role="status"><b>{connectionState === 'ready' ? 'Ready' : 'Connection required'}</b><span>{setupNotice}</span></div>}
           <div className="execution-options">{availableExecutionOptions.map(option => <button type="button" key={option.id} className={`execution-option ${selectedExecution?.id === option.id ? 'selected' : ''}`} onClick={() => selectExecution(option)} aria-pressed={selectedExecution?.id === option.id}><span className="execution-radio" /><span><b>{option.label}</b><small>{option.detail}</small></span><em>{option.kind}</em></button>)}</div>
           <div className="local-download" ref={runtimeConfigRef}>
             <div><p className="eyebrow">{hostedBuild ? 'Need a local CLI?' : 'Want to run it locally?'}</p><p>{hostedBuild ? <>Codex, Claude, and Antigravity CLI run only on your own machine. Download the local evaluator and follow <code>INSTRUCTIONS.md</code>.</> : <>Download the source, Docker setup, and <code>INSTRUCTIONS.md</code>. No saved ideas or keys are included.</>}</p></div>
