@@ -1,9 +1,10 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["agentId", "scores", "reasons", "overallScore"],
+  "required": ["agentId", "summary", "scores", "reasons", "overallScore"],
   "properties": {
     "agentId": { "type": "string" },
+    "summary": { "type": "string", "maxLength": 600 },
     "scores": {
       "type": "object",
       "additionalProperties": false,
