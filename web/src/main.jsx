@@ -379,7 +379,7 @@ function App() {
     setExecutionMode(nextMode)
     setConnectionState('idle')
     setSetupNotice('')
-    setModel(nextMode === 'groq-api' ? 'llama-3.3-70b-versatile' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : nextMode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
+    setModel(nextMode === 'groq-api' ? 'openai/gpt-oss-20b' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : nextMode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
     requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 

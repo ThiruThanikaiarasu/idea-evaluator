@@ -16,7 +16,7 @@ docker run --rm -p 8787:8787 \
 
 Open `http://localhost:8787`.
 
-The Docker version supports **OpenAI API**, **Claude API**, and **Groq API**. In Run Settings, choose a provider, paste an API key, and run the evaluation. Your key is used for that request only; it is not written to the database, run files, or image.
+The Docker version supports **OpenAI API**, **Claude API**, and **Groq API**. In Run Settings, choose a provider, paste an API key, and run the evaluation. Groq defaults to `openai/gpt-oss-20b`, which supports the evaluator's structured output. Your key is used for that request only; it is not written to the database, run files, or image.
 
 ## Option 2 — Run the UI and bridge manually
 

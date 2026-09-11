@@ -57,7 +57,10 @@ def run_api(provider: str, model: str, schema: Path, prompt: str, api_key: str) 
     if provider == "openai-api":
         url, headers, body = "https://api.openai.com/v1/responses", {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, {"model": model or "gpt-5", "input": prompt, "text": {"format": {"type": "json_schema", "name": "evaluation", "schema": json.loads(schema.read_text()), "strict": True}}}
     elif provider == "groq-api":
-        url, headers, body = "https://api.groq.com/openai/v1/chat/completions", {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, {"model": model or "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt + "\nReturn valid JSON only."}], "response_format": {"type": "json_object"}}
+        # Groq retired llama-3.3-70b-versatile for developer-tier accounts in August 2026.
+        # GPT-OSS supports strict JSON Schema output, which keeps agent results reliable.
+        selected_model = "openai/gpt-oss-20b" if not model or model == "llama-3.3-70b-versatile" else model
+        url, headers, body = "https://api.groq.com/openai/v1/chat/completions", {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, {"model": selected_model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_schema", "json_schema": {"name": schema.stem.replace(".", "_"), "strict": True, "schema": json.loads(schema.read_text())}}}
     elif provider == "anthropic-api":
         url, headers, body = "https://api.anthropic.com/v1/messages", {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, {"model": model or "claude-sonnet-4-6", "max_tokens": 1600, "messages": [{"role": "user", "content": prompt + "\nReturn valid JSON only, matching the requested schema."}]}
     else:
@@ -67,7 +70,10 @@ def run_api(provider: str, model: str, schema: Path, prompt: str, api_key: str) 
         with urllib.request.urlopen(request, timeout=150) as response:
             raw = json.loads(response.read())
     except urllib.error.HTTPError as error:
-        raise BridgeError(f"Provider rejected the request: {error.read().decode()[-500:]}") from error
+        detail = error.read().decode(errors="replace")[-500:]
+        if provider == "groq-api" and ("deprecat" in detail.lower() or "llama-3.3-70b-versatile" in detail):
+            detail = "The selected Groq Llama model is retired. Choose Groq API again to use openai/gpt-oss-20b."
+        raise BridgeError(f"Provider rejected the request: {detail}") from error
     except urllib.error.URLError as error:
         raise BridgeError(f"Provider connection failed: {error.reason}") from error
     text = raw.get("output_text", "") if provider == "openai-api" else raw["choices"][0]["message"]["content"] if provider == "groq-api" else "".join(block.get("text", "") for block in raw.get("content", []) if block.get("type") == "text")
