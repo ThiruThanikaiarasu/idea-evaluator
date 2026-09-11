@@ -11,7 +11,6 @@ Set these environment variables on that host:
 ```text
 IDEA_EVALUATOR_HOST=0.0.0.0
 IDEA_EVALUATOR_PORT=8787
-IDEA_EVALUATOR_ALLOWED_ORIGINS=https://YOUR-PROJECT.vercel.app
 ```
 
 Attach persistent storage to `/app/data` and `/app/runs`. This preserves ideas, agent reviews, mentor results, iteration history, and artifact links.
@@ -29,7 +28,7 @@ VITE_DEPLOYMENT_TARGET=vercel
 VITE_API_BASE=https://YOUR-BRIDGE-DOMAIN
 ```
 
-`VITE_API_BASE` must be the public HTTPS URL of the Docker bridge and must not end with `/`.
+`VITE_API_BASE` must be the public HTTPS URL of the bridge VM and must not end with `/`.
 
 4. Deploy.
 
@@ -41,4 +40,4 @@ VITE_API_BASE=https://YOUR-BRIDGE-DOMAIN
 
 ## Before sharing publicly
 
-Protect the bridge with authentication and rate limiting at the container host or reverse proxy. A public anonymous endpoint that accepts user API keys should use HTTPS and should not log request bodies.
+The bridge sends `Access-Control-Allow-Origin: *`, so the Vercel URL can call it without an origin allowlist. Protect the bridge with authentication and rate limiting at the container host or reverse proxy. A public anonymous endpoint that accepts user API keys should use HTTPS and should not log request bodies.

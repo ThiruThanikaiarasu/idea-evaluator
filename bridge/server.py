@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local-only bridge between the idea evaluator UI and authenticated coding CLIs."""
+"""HTTP bridge between the Idea Evaluator UI and its configured runtimes."""
 
 from __future__ import annotations
 
@@ -30,8 +30,6 @@ RUNS = ROOT / "runs"
 WEB_DIST = ROOT / "web" / "dist"
 HOST = os.environ.get("IDEA_EVALUATOR_HOST", "127.0.0.1")
 PORT = int(os.environ.get("IDEA_EVALUATOR_PORT", "8787"))
-ALLOWED_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
-ALLOWED_ORIGINS.update(origin.strip() for origin in os.environ.get("IDEA_EVALUATOR_ALLOWED_ORIGINS", "").split(",") if origin.strip())
 PERSONAS = [
     ("cto", "Skeptical CTO", "Assess feasibility, operational complexity, reliability, scale, and whether this is a product rather than merely a feature. Your behavior: assume data, integrations, and operations fail at scale until the idea proves otherwise."),
     ("user", "Bored User", "Assess immediate user value, friction, trust, repeat use, and whether the core action works at the moment it matters. Your behavior: be impatient and ask why you would open this a second time instead of using the easiest current workaround."),
@@ -282,10 +280,9 @@ def evaluate_stream(payload: dict[str, Any], emit: Any) -> None:
 
 class Handler(BaseHTTPRequestHandler):
     def end_headers(self) -> None:
-        origin = self.headers.get("Origin")
-        if origin in ALLOWED_ORIGINS:
-            self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Vary", "Origin")
+        # The bridge may live on a VM while the UI is hosted elsewhere (for example,
+        # Vercel), so let any browser origin reach the bridge API.
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         super().end_headers()

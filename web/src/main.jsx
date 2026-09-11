@@ -6,7 +6,7 @@ import './styles.css'
 // so production calls stay on the same origin and never point at a visitor's localhost.
 const bridgeBase = import.meta.env.VITE_API_BASE ?? (window.location.port === '5173' ? 'http://127.0.0.1:8787' : '')
 const apiUrl = path => `${bridgeBase}${path}`
-const localDownloadUrl = 'https://github.com/ThiruThanikaiarasu/idea-evaluator/archive/refs/heads/main.zip'
+const localDownloadUrl = 'https://github.com/ThiruThanikaiarasu/idea-evaluator/raw/main/downloads/idea-evaluator-bridge.zip'
 const hostedBuild = import.meta.env.VITE_DEPLOYMENT_TARGET === 'vercel'
 
 const agents = [
@@ -498,8 +498,8 @@ function App() {
           {setupNotice && <div className={`setup-notice ${connectionState === 'ready' ? 'ready' : 'warning'}`} role="status"><b>{connectionState === 'ready' ? 'Ready' : 'Connection required'}</b><span>{setupNotice}</span></div>}
           <div className="execution-options">{availableExecutionOptions.map(option => <button type="button" key={option.id} className={`execution-option ${selectedExecution?.id === option.id ? 'selected' : ''}`} onClick={() => selectExecution(option)} aria-pressed={selectedExecution?.id === option.id}><span className="execution-radio" /><span><b>{option.label}</b><small>{option.detail}</small></span><em>{option.kind}</em></button>)}</div>
           <div className="local-download" ref={runtimeConfigRef}>
-            <div><p className="eyebrow">{hostedBuild ? 'Need a local CLI?' : 'Want to run it locally?'}</p><p>{hostedBuild ? <>Codex, Claude, and Antigravity CLI run only on your own machine. Download the local evaluator and follow <code>INSTRUCTIONS.md</code>.</> : <>Download the source, Docker setup, and <code>INSTRUCTIONS.md</code>. No saved ideas or keys are included.</>}</p></div>
-            <a className="secondary-button" href={localDownloadUrl}>Download local evaluator ↓</a>
+            <div><p className="eyebrow">{hostedBuild ? 'Need a local CLI?' : 'Want to run it locally?'}</p><p>{hostedBuild ? <>Codex, Claude, and Antigravity CLI run only on your own machine. Download the bridge-only package and follow <code>INSTRUCTIONS.md</code> to connect it to this hosted UI.</> : <>Download the bridge-only package and follow <code>INSTRUCTIONS.md</code>. It includes no UI, saved ideas, or API keys.</>}</p></div>
+            <a className="secondary-button" href={localDownloadUrl}>Download local bridge ↓</a>
           </div>
           <div className="runtime-config">
             {isLocalCli && <div className="local-cli-picker"><span>Choose your local CLI</span><div><button className={executionMode === 'codex-cli' ? 'selected' : ''} onClick={() => selectLocalCli('codex-cli')}>Codex CLI</button><button className={executionMode === 'claude-cli' ? 'selected' : ''} onClick={() => selectLocalCli('claude-cli')}>Claude CLI</button><button className={executionMode === 'antigravity-cli' ? 'selected' : ''} onClick={() => selectLocalCli('antigravity-cli')}>Antigravity CLI</button></div></div>}
