@@ -446,9 +446,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(201, {"approval": save_approval(idea_id, evaluation_id, decision, notes)})
             elif self.path.endswith("/artifacts"):
                 idea_id = self.path.removeprefix("/api/ideas/").removesuffix("/artifacts").strip("/")
-                title, url, approval_id, metadata = payload.get("title"), payload.get("url"), payload.get("approvalId"), payload.get("metadata", {})
-                if not isinstance(title, str) or not title.strip() or not isinstance(url, str) or not url.strip() or (approval_id is not None and not isinstance(approval_id, str)) or not isinstance(metadata, dict):
-                    raise BridgeError("title, url, optional approvalId, and metadata are required.")
+                title, url, approval_id, metadata = payload.get("title", "Claude Artifact"), payload.get("url"), payload.get("approvalId"), payload.get("metadata", {})
+                if not isinstance(url, str) or not url.strip() or (approval_id is not None and not isinstance(approval_id, str)) or not isinstance(metadata, dict):
+                    raise BridgeError("A valid artifact URL is required.")
+                title = title.strip() if isinstance(title, str) and title.strip() else "Claude Artifact"
                 self.send_json(201, {"artifact": save_artifact(idea_id, approval_id, title, url, metadata)})
             else:
                 self.send_json(200, evaluate(payload))

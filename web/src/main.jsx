@@ -369,7 +369,7 @@ function App() {
     event.preventDefault()
     const response = await fetch(apiUrl(`/api/ideas/${selectedIdea.id}/artifacts`), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: artifactTitle, url: artifactUrl, approvalId: approval?.id, metadata: { evaluationId: evaluation.runId } })
+      body: JSON.stringify({ title: artifactTitle.trim() || `${selectedIdea?.title || 'Idea'} · Claude Artifact`, url: artifactUrl, approvalId: approval?.id, metadata: { evaluationId: evaluation.runId } })
     })
     if (response.ok) setArtifactSaved(true)
   }
@@ -471,7 +471,7 @@ function App() {
       {page === 'artifact' && evaluation && <section className="artifact-page page-enter">
         <div className="artifact-heading"><p className="eyebrow">Human-approved direction · pitch artifact</p><h1>Turn the direction<br />into a story.</h1><p>Create your Claude Artifact from this human-approved evaluation, then save its link here so the full trail stays with the idea.</p></div>
         <article className="artifact-preview"><div className="artifact-cover"><span>{selectedIdea.title}</span><p>{selectedIdea.description}</p><small>HUMAN-APPROVED DIRECTION</small></div><div className="artifact-sections"><section><span>01</span><div><h3>Selected panel input</h3><p>{mentorRevision?.selectedFeedback?.length ? `${mentorRevision.selectedFeedback.length} reviewer perspectives shaped this revision.` : 'This direction was reviewed by the full panel.'}</p></div></section><section><span>02</span><div><h3>What to validate next</h3><p>Use the artifact to state the problem, testable direction, assumptions, and evidence you will collect.</p></div></section><section><span>03</span><div><h3>Decision ownership</h3><p>This direction was approved by a human after the revised idea returned to the panel.</p></div></section></div></article>
-        <form className="artifact-save" onSubmit={saveArtifact}><p className="eyebrow">Save your Claude Artifact</p><label>Artifact title<input value={artifactTitle} onChange={event => setArtifactTitle(event.target.value)} required /></label><label>Artifact URL<input type="url" value={artifactUrl} onChange={event => setArtifactUrl(event.target.value)} placeholder="https://claude.ai/artifacts/..." required /></label><button className="primary-button" type="submit">{artifactSaved ? 'Artifact link saved' : 'Save artifact link'} <span>→</span></button></form>
+        <form className="artifact-save" onSubmit={saveArtifact}><p className="eyebrow">Save your Claude Artifact</p><label>Artifact URL<input type="url" value={artifactUrl} onChange={event => setArtifactUrl(event.target.value)} placeholder="https://claude.ai/artifacts/..." required /></label><button className="primary-button" type="submit">{artifactSaved ? 'Artifact link saved' : 'Save artifact link'} <span>→</span></button></form>
       </section>}
 
       {page === 'history' && history && <section className="summary-page page-enter">
