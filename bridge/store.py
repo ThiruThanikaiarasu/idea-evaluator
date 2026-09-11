@@ -180,6 +180,24 @@ def save_artifact(idea_id: str, approval_id: str | None, title: str, url: str, m
     return item
 
 
+def update_artifact(idea_id: str, artifact_id: str, title: str, url: str, metadata: dict[str, Any]) -> dict[str, Any]:
+    with connection() as db:
+        row = db.execute(
+            "SELECT approval_id, created_at FROM artifacts WHERE id = ? AND idea_id = ?", (artifact_id, idea_id)
+        ).fetchone()
+        if not row:
+            raise ValueError("The saved artifact was not found.")
+        db.execute(
+            "UPDATE artifacts SET title = ?, url = ?, metadata_json = ? WHERE id = ? AND idea_id = ?",
+            (title, url, json.dumps(metadata), artifact_id, idea_id),
+        )
+        db.execute("UPDATE ideas SET updated_at = ? WHERE id = ?", (now(), idea_id))
+    return {
+        "id": artifact_id, "ideaId": idea_id, "approvalId": row["approval_id"], "title": title,
+        "url": url, "metadata": metadata, "createdAt": row["created_at"],
+    }
+
+
 def idea_state(idea_id: str) -> dict[str, Any]:
     with connection() as db:
         idea = db.execute("SELECT id, title, description, created_at AS createdAt, updated_at AS updatedAt FROM ideas WHERE id = ?", (idea_id,)).fetchone()

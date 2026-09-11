@@ -21,7 +21,7 @@ from typing import Any
 
 from store import (
     create_idea, idea_state, initialize, list_evaluations, list_ideas,
-    save_approval, save_artifact, save_evaluation, save_mentor_revision, update_evaluation,
+    save_approval, save_artifact, save_evaluation, save_mentor_revision, update_artifact, update_evaluation,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -452,11 +452,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(201, {"approval": save_approval(idea_id, evaluation_id, decision, notes)})
             elif self.path.endswith("/artifacts"):
                 idea_id = self.path.removeprefix("/api/ideas/").removesuffix("/artifacts").strip("/")
-                title, url, approval_id, metadata = payload.get("title", "Claude Artifact"), payload.get("url"), payload.get("approvalId"), payload.get("metadata", {})
-                if not isinstance(url, str) or not url.strip() or (approval_id is not None and not isinstance(approval_id, str)) or not isinstance(metadata, dict):
-                    raise BridgeError("A valid artifact URL is required.")
-                title = title.strip() if isinstance(title, str) and title.strip() else "Claude Artifact"
-                self.send_json(201, {"artifact": save_artifact(idea_id, approval_id, title, url, metadata)})
+                title, url, approval_id, metadata, artifact_id = payload.get("title"), payload.get("url", ""), payload.get("approvalId"), payload.get("metadata", {}), payload.get("artifactId")
+                if not isinstance(title, str) or not title.strip() or not isinstance(url, str) or (approval_id is not None and not isinstance(approval_id, str)) or not isinstance(metadata, dict) or (artifact_id is not None and not isinstance(artifact_id, str)):
+                    raise BridgeError("Artifact title is required; the artifact URL may be added later.")
+                artifact = update_artifact(idea_id, artifact_id, title.strip(), url.strip(), metadata) if artifact_id else save_artifact(idea_id, approval_id, title.strip(), url.strip(), metadata)
+                self.send_json(200 if artifact_id else 201, {"artifact": artifact})
             else:
                 self.send_json(200, evaluate(payload))
         except (json.JSONDecodeError, BridgeError) as error:
