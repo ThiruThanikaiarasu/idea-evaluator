@@ -20,6 +20,7 @@ const executionOptions = [
   { id: 'openai-api', label: 'OpenAI API', detail: 'Your key is used only for this run.', kind: 'API' },
   { id: 'anthropic-api', label: 'Claude API', detail: 'Your key is used only for this run.', kind: 'API' },
   { id: 'groq-api', label: 'Groq API', detail: 'Your key is used only for this run.', kind: 'API' },
+  { id: 'tensormux-api', label: 'TensorMux API', detail: 'Uses the TensorMux OpenAI-compatible endpoint.', kind: 'API' },
   { id: 'local-cli', label: 'Local CLI', detail: 'Use Codex or Claude already authenticated on this machine.', kind: 'CLI' }
 ]
 
@@ -387,7 +388,7 @@ function App() {
     setExecutionMode(nextMode)
     setConnectionState('idle')
     setSetupNotice('')
-    setModel(nextMode === 'groq-api' ? 'openai/gpt-oss-20b' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : nextMode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
+    setModel(nextMode === 'tensormux-api' ? 'glm-4-7-flash' : nextMode === 'groq-api' ? 'openai/gpt-oss-20b' : nextMode === 'openai-api' ? 'gpt-5' : nextMode === 'anthropic-api' ? 'claude-sonnet-4-6' : nextMode === 'codex-cli' ? 'Codex default' : nextMode === 'claude-cli' ? 'Claude default' : 'Antigravity default')
     requestAnimationFrame(() => runtimeConfigRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 

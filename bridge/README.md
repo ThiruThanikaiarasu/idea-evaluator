@@ -36,8 +36,8 @@ with authentication, rate limiting, and request-body-safe logs.
 ## Local CLIs and data
 
 For local CLI mode, install and authenticate Codex CLI, Claude CLI, or Antigravity CLI on the same
-machine as the bridge. For a hosted bridge, use OpenAI, Claude, or Groq API mode instead; do not
-install local coding CLIs on a public server.
+machine as the bridge. For a hosted bridge, use OpenAI, Claude, Groq, or TensorMux API mode
+instead; do not install local coding CLIs on a public server.
 
 SQLite data is created in `data/` and run snapshots are written to `runs/`, next to `bridge/`.
 Attach persistent storage for both directories on a VM or container.

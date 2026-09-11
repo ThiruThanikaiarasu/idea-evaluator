@@ -34,7 +34,7 @@ VITE_API_BASE=https://YOUR-BRIDGE-DOMAIN
 
 ## Hosted behavior
 
-- The Vercel UI shows OpenAI, Claude, and Groq API modes only.
+- The Vercel UI shows OpenAI, Claude, Groq, and TensorMux API modes only.
 - A visitor-provided API key is passed to the bridge only for the active request; the bridge does not store it in SQLite or run history.
 - Codex CLI, Claude CLI, and Antigravity CLI are hidden in the hosted UI. The Settings screen directs users to download the local evaluator for those modes.
 

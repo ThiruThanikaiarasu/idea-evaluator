@@ -59,6 +59,10 @@ def run_api(provider: str, model: str, schema: Path, prompt: str, api_key: str) 
         # GPT-OSS supports strict JSON Schema output, which keeps agent results reliable.
         selected_model = "openai/gpt-oss-20b" if not model or model == "llama-3.3-70b-versatile" else model
         url, headers, body = "https://api.groq.com/openai/v1/chat/completions", {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, {"model": selected_model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_schema", "json_schema": {"name": schema.stem.replace(".", "_"), "strict": True, "schema": json.loads(schema.read_text())}}}
+    elif provider == "tensormux-api":
+        # TensorMux exposes the OpenAI-compatible Chat Completions API at its /v1 base URL.
+        selected_model = model or "glm-4-7-flash"
+        url, headers, body = "https://api.tensormux.com/v1/chat/completions", {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, {"model": selected_model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_schema", "json_schema": {"name": schema.stem.replace(".", "_"), "strict": True, "schema": json.loads(schema.read_text())}}}
     elif provider == "anthropic-api":
         url, headers, body = "https://api.anthropic.com/v1/messages", {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, {"model": model or "claude-sonnet-4-6", "max_tokens": 1600, "messages": [{"role": "user", "content": prompt + "\nReturn valid JSON only, matching the requested schema."}]}
     else:
@@ -74,7 +78,7 @@ def run_api(provider: str, model: str, schema: Path, prompt: str, api_key: str) 
         raise BridgeError(f"Provider rejected the request: {detail}") from error
     except urllib.error.URLError as error:
         raise BridgeError(f"Provider connection failed: {error.reason}") from error
-    text = raw.get("output_text", "") if provider == "openai-api" else raw["choices"][0]["message"]["content"] if provider == "groq-api" else "".join(block.get("text", "") for block in raw.get("content", []) if block.get("type") == "text")
+    text = raw.get("output_text", "") if provider == "openai-api" else raw["choices"][0]["message"]["content"] if provider in {"groq-api", "tensormux-api"} else "".join(block.get("text", "") for block in raw.get("content", []) if block.get("type") == "text")
     try:
         return json.loads(text.strip())
     except json.JSONDecodeError as error:
@@ -82,7 +86,7 @@ def run_api(provider: str, model: str, schema: Path, prompt: str, api_key: str) 
 
 
 def run_cli(provider: str, model: str, schema: Path, prompt: str, api_key: str = "") -> dict[str, Any]:
-    if provider in {"openai-api", "groq-api", "anthropic-api"}:
+    if provider in {"openai-api", "groq-api", "anthropic-api", "tensormux-api"}:
         return run_api(provider, model, schema, prompt, api_key)
     executable = {"codex-cli": "codex", "claude-cli": "claude", "antigravity-cli": "agy"}.get(provider)
     if not executable:
