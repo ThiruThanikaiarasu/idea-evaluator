@@ -1,148 +1,161 @@
 # Contributing to Idea Evaluator
 
-Thank you for helping improve Idea Evaluator. Contributions are welcome when they make the
-evaluation workflow safer, clearer, more reliable, or easier to run.
+Thanks for your interest in contributing. Idea Evaluator is a small application containing three
+cooperating parts:
 
-This guide follows the structure of the [Angular contribution guide](https://github.com/angular/angular/blob/main/CONTRIBUTING.md), adapted for this repository's Python bridge and React UI.
+- `web` — the React/Vite interface for submitting ideas and reviewing evaluations.
+- `bridge` — the Python HTTP bridge, persistence layer, and provider integrations used by the UI.
+- `src/agent_panel` — the reusable evaluation pipeline and command-line interface.
+
+Please read the root [README](README.md) and [INSTRUCTIONS](INSTRUCTIONS.md) before making
+changes. They describe the supported local, Docker, and hosted deployment workflows.
 
 ## Code of conduct
 
-Be respectful, specific, and constructive. Do not include private user ideas, API keys, provider
-responses, credentials, or other sensitive information in issues, commits, or pull requests.
+Be respectful, assume good intent, and keep discussions focused on improving the project. Do not
+share API keys, private ideas, provider responses, personal data, credentials, or other sensitive
+information in issues, pull requests, logs, screenshots, or test fixtures.
 
-## Questions and support
+## Before you start
 
-Use the repository's issue tracker for reproducible bugs, documentation problems, and feature
-proposals. For general questions, first check `README.md`, `INSTRUCTIONS.md`, and the existing
-issues before opening a new one.
+For a new checkout:
 
-## Reporting a bug
-
-Before opening an issue:
-
-1. Search existing open and closed issues.
-2. Confirm the problem against the latest `main` branch when possible.
-3. Reduce the problem to the smallest reproducible example.
-4. Remove API keys, private ideas, user data, and provider output from logs and screenshots.
-
-A useful bug report includes:
-
-- what you expected to happen;
-- what actually happened;
-- the steps and commands needed to reproduce it;
-- the operating system, Python version, and Node.js version;
-- whether the issue affects the bridge, CLI, UI, Docker, or Vercel deployment; and
-- relevant sanitized logs or screenshots.
-
-## Proposing a feature
-
-For substantial features, open an issue before implementing them. Describe the user problem,
-proposed behavior, alternatives considered, and any changes needed to the contracts, bridge API,
-UI, persistence, or deployment model. Small, well-scoped improvements may go directly into a pull
-request.
-
-## Development setup
+```bash
+git clone <repository-url> idea-evaluator
+cd idea-evaluator
+cp .env.example .env
+```
 
 Requirements:
 
 - Python 3.11 or newer
 - Node.js 20 or newer
-- Docker Desktop for container testing
+- Docker Desktop, if testing the container workflow
 
-From the repository root:
+Install the web dependencies from the repository root:
 
 ```bash
-cp .env.example .env
+cd web
+npm install
+```
+
+The `data/` and `runs/` directories contain local runtime state and are intentionally ignored by
+Git. Never commit them or any file containing credentials.
+
+## Development workflow
+
+Start the bridge from the repository root:
+
+```bash
 python3 bridge/server.py
 ```
 
-In a second terminal:
+In a second terminal, start the web interface:
 
 ```bash
 cd web
 cp .env.example .env
-npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+The UI is available at <http://localhost:5173>. The bridge listens on
+<http://127.0.0.1:8787> by default.
 
-## Making changes
+For the offline Python CLI workflow:
 
-1. Create a focused branch from `main`:
+```bash
+python3 -m src.agent_panel.cli \
+  --title "Example idea" \
+  --description "A synthetic example for local testing." \
+  --consent-to-project --approve --provider mock
+```
 
-   ```bash
-   git switch -c fix/short-description
-   ```
+For Docker-related work:
 
-2. Keep each change focused and avoid unrelated formatting churn.
-3. Preserve the consent, approval, evidence-status, and observability boundaries in the evaluator.
-4. Update contracts, documentation, and tests when behavior changes.
-5. Never commit `.env` files, API keys, SQLite databases, run history, dependencies, or build output.
+```bash
+docker build -t idea-evaluator:latest .
+docker run --rm -p 8787:8787 \
+  -v idea-evaluator-data:/app/data \
+  -v idea-evaluator-runs:/app/runs \
+  idea-evaluator:latest
+```
 
-## Testing and validation
+## Checks before opening a pull request
 
-Run the checks relevant to your change before opening a pull request:
+Run the checks relevant to your change. For a complete change, run all of them:
 
 ```bash
 python3 -m pytest
 cd web && npm run build
 ```
 
-For Docker-related changes:
+If you change the bridge, verify that it starts and that the affected endpoint works with synthetic
+input. If you change the UI, verify the relevant flow in the browser at `http://localhost:5173`.
+If you change Docker or deployment configuration, run the relevant Docker or Vercel validation.
 
-```bash
-docker build -t idea-evaluator:latest .
-```
+If a check cannot be run locally, explain why in the pull request.
 
-If a check cannot be run locally, state why in the pull request. New Python behavior should include
-tests where practical; UI changes should include a screenshot or short recording when visual
-behavior is affected.
+## Safety requirements
+
+These rules are part of the product contract:
+
+- Preserve explicit consent before an idea is projected, saved, or analyzed.
+- Preserve the human approval checkpoint before mentor planning or other downstream actions.
+- Keep evidence labels honest; do not present hypotheses or unverified competitor claims as facts.
+- Do not add automatic external actions, publishing, messaging, or outreach without an explicit user
+  approval step.
+- Do not commit API keys, `.env` files, SQLite databases, run history, personal ideas, or provider
+  responses.
+- Keep credentials out of source code, screenshots, logs, fixtures, and error messages.
+- Validate visitor-supplied input and preserve the bridge's local-only safeguards for coding CLIs.
+
+## Issues and feature requests
+
+Search existing issues before opening a new one. A useful bug report includes:
+
+1. The affected component (`web`, `bridge`, `src/agent_panel`, Docker, or deployment).
+2. The operating system, Python version, Node.js version, and relevant setup details.
+3. Exact reproduction steps using synthetic or redacted data.
+4. Expected behavior and actual behavior.
+5. Relevant console output or screenshots with secrets and private content removed.
+
+For a major feature or behavior change, open an issue first and describe the proposed design. This
+helps keep the Python contracts, bridge API, UI, persistence model, and deployment paths compatible.
 
 ## Pull requests
 
 Before opening a pull request:
 
-1. Search for related issues and pull requests to avoid duplicate work.
-2. Rebase or update your branch from `main` if needed.
-3. Review the complete diff and confirm that no secrets or generated files are included.
-4. Run the applicable tests and builds.
-5. Use a clear title and description explaining the problem, solution, scope, and validation.
+1. Create a focused branch from the latest default branch.
+2. Keep the change scoped and update the relevant documentation.
+3. Add or update tests and run the checks above.
+4. Confirm that no ignored or personal files are included:
 
-Pull requests should include:
+   ```bash
+   git status --short
+   git diff --check
+   git diff --stat
+   ```
 
-- a concise summary of the user-facing or developer-facing change;
-- links to related issues, if any;
-- test and build commands that were run;
-- screenshots or recording for visible UI changes; and
-- any required environment-variable, migration, or deployment changes.
+5. Explain the problem, solution, affected components, and verification in the pull request.
+6. Call out any contract, persistence, API-provider, environment-variable, or deployment impact.
 
-Maintainers may request changes when a proposal is too broad, lacks tests, exposes sensitive data,
-or changes a public contract without documenting the impact.
-
-## Coding conventions
-
-- Keep Python modules small and typed where practical.
-- Use the existing contract models and provider abstractions instead of passing unstructured data.
-- Keep bridge endpoints explicit and validate visitor-supplied input.
-- Keep React changes accessible, responsive, and consistent with the existing UI.
-- Prefer clear names and small functions over clever abstractions.
-- Document new public behavior and configuration.
+Pull requests that weaken consent or approval boundaries, expose credentials, misrepresent evidence,
+or rely on private data will not be accepted.
 
 ## Commit messages
 
-Use a short, imperative subject line. Conventional Commit prefixes are encouraged:
+Use a short imperative subject with a conventional type and, when useful, a component scope:
 
 ```text
-feat(ui): add provider status indicator
-fix(bridge): validate empty descriptions
-docs: clarify local setup
+feat(web): add evaluation progress state
+fix(bridge): reject empty idea descriptions
+docs(repo): clarify local setup
 test(pipeline): cover approval boundary
 ```
 
-Keep commits focused so they are easy to review and revert.
+Keep commits small and logically grouped. Avoid mixing formatting-only changes with behavior changes.
 
-## Security issues
+## License
 
-Do not report undisclosed vulnerabilities, leaked credentials, or private data in a public issue.
-Contact the repository owner privately with reproduction details and the minimum necessary evidence.
+By contributing, you agree that your contribution may be distributed under the repository's license.
